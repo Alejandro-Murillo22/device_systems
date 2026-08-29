@@ -1,261 +1,233 @@
 # device_systems
 
-API REST desarrollada con **FastAPI** para la gestión del recurso **users** dentro del sistema `device_systems`. Este proyecto corresponde a la actividad *"Fundamentos de FastAPI: API REST para Gestión de Usuarios"* (Clase 7), e integra: instalación y configuración de FastAPI, métodos HTTP GET y POST, Path Parameters, Query Parameters, validación de datos con Pydantic v2, cabeceras HTTP personalizadas y Response Models.
+API REST desarrollada con **FastAPI** para la gestión del recurso **users**. Este proyecto es la evolución de la actividad anterior (Clase 7 – Fundamentos de FastAPI) hacia una API con **CRUD completo**, manejo profesional de errores, códigos de estado correctos, documentación Swagger/OpenAPI mejorada y **Dependency Injection** con `Depends()` (Clase 8 – FastAPI Intermedio).
 
 ## 1. Descripción de la aplicación
 
-`device_systems` es una API REST que permite administrar los usuarios de un sistema. Sobre el recurso `users` es posible:
+`device_systems` administra usuarios de un sistema, permitiendo:
 
-- Listar todos los usuarios, con filtros opcionales por **rol** y por **estado activo/inactivo**.
-- Consultar un usuario específico por su **ID**.
-- Registrar un nuevo usuario, validando los datos de entrada y evitando **correos duplicados**.
+- Listar usuarios, con filtros opcionales por **rol** y **estado activo**.
+- Consultar, **crear**, **actualizar (total y parcialmente)** y **eliminar** usuarios.
+- Validación automática de datos con **Pydantic v2**.
+- Respuestas estandarizadas que ocultan campos internos (`internal_notes`).
+- Manejo de errores explícito: usuario no encontrado, correo duplicado, rol no permitido, actualización sin datos, eliminación de usuario inexistente.
+- Reutilización de lógica común mediante **Dependency Injection**.
 
-La API valida automáticamente los datos usando **Pydantic v2** (tipos, formato de correo, longitud mínima del nombre, valores permitidos de rol, etc.), estandariza las respuestas mediante **response models** (ocultando campos internos como `internal_notes`) y agrega **cabeceras HTTP personalizadas** (`X-App-Name`, `X-API-Version`) a todas las respuestas.
+## 2. Tecnologías utilizadas
 
-### Estructura del proyecto
+- **FastAPI** — framework web para construir la API.
+- **Uvicorn** — servidor ASGI que ejecuta la aplicación.
+- **Pydantic v2** — validación y serialización de datos.
+- **email-validator** — validación de formato de correo electrónico.
+
+## 3. Estructura del proyecto
 
 ```
 device_systems/
 │── app/
-│   │── main.py                 # Punto de entrada, middleware de cabeceras
-│   │── schemas/
-│   │   └── user_schema.py      # Modelos Pydantic (UserCreate, UserPublic, UserInDB...)
+│   │── main.py                     # Punto de entrada, middleware, metadatos OpenAPI
 │   │── routes/
-│   │   └── user_routes.py      # Endpoints GET y POST del recurso users
+│   │   └── user_routes.py          # Definición de endpoints (sin lógica de negocio)
+│   │── schemas/
+│   │   └── user_schema.py          # Modelos Pydantic de entrada y salida
+│   │── services/
+│   │   └── user_service.py         # Lógica de negocio (crear, listar, actualizar, borrar)
+│   │── dependencies/
+│   │   └── user_dependencies.py    # Funciones reutilizables con Depends()
+│   │── data/
+│   │   └── users_db.py             # Simulación de base de datos en memoria
 │── requirements.txt
 │── README.md
 ```
 
-## 2. Instalación de dependencias
+**¿Por qué esta separación?**
+- `routes` solo traduce HTTP ↔ Python: recibe la petición y llama a `services`.
+- `services` contiene las reglas de negocio (por ejemplo, qué significa "correo duplicado"), independientes de si vienen de una petición HTTP o de otro lugar.
+- `dependencies` centraliza validaciones repetidas (buscar usuario por ID, verificar una API key) para no reescribirlas en cada endpoint.
+- `data` aísla el almacenamiento en memoria para que ninguna otra capa dependa directamente de cómo se guardan los datos.
 
-**Requisitos previos:** Python 3.10+ instalado, y opcionalmente Git.
+## 4. Instalación de dependencias
 
-1. Clonar o descomprimir el proyecto y ubicarse en la carpeta raíz:
+```bash
+cd device_systems
+python -m venv venv
+venv\Scripts\Activate.ps1        # Windows
+# source venv/bin/activate       # Linux / macOS
+pip install -r requirements.txt
+```
 
-   ```bash
-   cd device_systems
-   ```
-
-2. Crear un entorno virtual (recomendado):
-
-   ```bash
-   python -m venv venv
-   ```
-
-3. Activar el entorno virtual:
-
-   - **Windows (PowerShell):**
-     ```bash
-     venv\Scripts\Activate.ps1
-     ```
-   - **Linux / macOS:**
-     ```bash
-     source venv/bin/activate
-     ```
-
-4. Instalar las dependencias:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   Dependencias principales:
-   - `fastapi`
-   - `uvicorn[standard]`
-   - `pydantic` (v2)
-   - `email-validator` (requerido por Pydantic para validar `EmailStr`)
-
-## 3. Ejecución del servidor
-
-Desde la carpeta raíz del proyecto (`device_systems/`):
+## 5. Ejecución del servidor
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-- La API quedará disponible en: `http://127.0.0.1:8000`
-- Documentación interactiva (Swagger UI): `http://127.0.0.1:8000/docs`
-- Documentación alternativa (ReDoc): `http://127.0.0.1:8000/redoc`
+- API: `http://127.0.0.1:8000`
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
 
-> El proyecto incluye 3 usuarios de ejemplo precargados en memoria (`id` 1, 2 y 3) para poder probar los endpoints GET inmediatamente después de levantar el servidor.
+> El proyecto incluye 3 usuarios de ejemplo precargados (`id` 1, 2 y 3).
 
-## 4. Tabla de endpoints
+## 6. Tabla de endpoints
 
-| Método | Endpoint                     | Descripción                                              | Body / Parámetros                                  |
-|--------|-------------------------------|-----------------------------------------------------------|-----------------------------------------------------|
-| GET    | `/`                            | Verifica el estado de la API                              | —                                                     |
-| GET    | `/users`                       | Lista todos los usuarios                                  | Query opcionales: `role`, `is_active`               |
-| GET    | `/users?role=admin`            | Filtra usuarios por rol                                    | Query: `role` (`admin`, `support`, `user`)          |
-| GET    | `/users?is_active=true`        | Filtra usuarios por estado activo/inactivo                 | Query: `is_active` (`true` / `false`)               |
-| GET    | `/users/{user_id}`             | Consulta un usuario por su ID (Path Parameter)             | Path: `user_id` (int)                                |
-| POST   | `/users`                       | Registra un nuevo usuario                                  | Body JSON: `name`, `email`, `role`, `is_active`     |
+| Método | Endpoint            | Descripción                          | Código éxito | Código error                     |
+|--------|----------------------|----------------------------------------|---------------|------------------------------------|
+| GET    | `/`                   | Estado de la API                      | 200           | —                                   |
+| GET    | `/users`              | Lista usuarios (filtros `role`, `is_active`) | 200    | —                                   |
+| GET    | `/users/{user_id}`    | Consulta un usuario por ID             | 200           | 404 si no existe                   |
+| POST   | `/users`              | Crea un usuario                        | 201           | 400 correo duplicado · 422 datos inválidos |
+| PUT    | `/users/{user_id}`    | Reemplaza TODOS los campos del usuario | 200           | 404 no existe · 400 correo duplicado · 422 datos inválidos |
+| PATCH  | `/users/{user_id}`    | Modifica solo los campos enviados      | 200           | 404 no existe · 400 sin campos o correo duplicado |
+| DELETE | `/users/{user_id}`    | Elimina un usuario (requiere header `X-API-Key`) | 200 | 404 no existe · 401 API Key inválida |
 
-**Cabeceras personalizadas** (presentes en todas las respuestas de `/users*`):
+## 7. Ejemplos de peticiones y respuestas
 
-```
-X-App-Name: device_systems
-X-API-Version: 1.0
-```
-
-**Códigos de estado relevantes:**
-
-| Código | Cuándo ocurre                                              |
-|--------|-------------------------------------------------------------|
-| 200    | Consulta exitosa (GET)                                      |
-| 201    | Usuario creado exitosamente (POST)                           |
-| 404    | Usuario no encontrado (`GET /users/{id}`)                    |
-| 409    | Correo ya registrado (`POST /users`)                          |
-| 422    | Error de validación de datos (Pydantic)                       |
-
-## 5. Ejemplos de peticiones
-
-### GET /users
+### PUT /users/{user_id} — reemplazo completo
 
 **Request:**
 ```
-GET http://127.0.0.1:8000/users
-```
+PUT http://127.0.0.1:8000/users/1
+Content-Type: application/json
 
-**Response (200):**
-```json
 {
-  "total": 3,
-  "items": [
-    {
-      "id": 1,
-      "name": "Alejandro Ramirez",
-      "email": "alejandro@device-systems.com",
-      "role": "admin",
-      "is_active": true
-    },
-    {
-      "id": 2,
-      "name": "Juan Duque",
-      "email": "juan@device-systems.com",
-      "role": "support",
-      "is_active": true
-    },
-    {
-      "id": 3,
-      "name": "Mateo Gomez",
-      "email": "mateo@device-systems.com",
-      "role": "user",
-      "is_active": false
-    }
-  ]
+  "name": "Alejandro Murillo",
+  "email": "alejandro@device-systems.com",
+  "role": "admin",
+  "is_active": false
 }
-```
-
-### GET /users/{user_id}
-
-**Request:**
-```
-GET http://127.0.0.1:8000/users/1
 ```
 
 **Response (200):**
 ```json
 {
   "id": 1,
-  "name": "Alejandro Ramirez",
+  "name": "Alejandro Murillo",
   "email": "alejandro@device-systems.com",
   "role": "admin",
-  "is_active": true
+  "is_active": false
 }
 ```
 
-**Response si el usuario no existe (404):**
-```json
-{
-  "detail": "Usuario con id 99 no encontrado"
-}
-```
+Si falta cualquiera de los 4 campos, responde **422** (Pydantic los exige todos en `UserUpdate`).
 
-### GET /users?role=admin&is_active=true
+### PATCH /users/{user_id} — actualización parcial
 
 **Request:**
 ```
-GET http://127.0.0.1:8000/users?role=admin&is_active=true
-```
-
-**Response (200):** devuelve solo los usuarios que cumplen ambos filtros.
-
-### POST /users
-
-**Request:**
-```
-POST http://127.0.0.1:8000/users
+PATCH http://127.0.0.1:8000/users/2
 Content-Type: application/json
 
 {
-  "name": "Camila Torres",
-  "email": "camila@device-systems.com",
-  "role": "user",
-  "is_active": true
+  "role": "support"
 }
 ```
 
-**Response (201):**
+**Response (200):** el usuario completo, con solo el `role` cambiado; el resto de sus campos quedan intactos.
+
+**Si se envía un body vacío `{}`:**
 ```json
 {
-  "id": 4,
-  "name": "Camila Torres",
-  "email": "camila@device-systems.com",
-  "role": "user",
-  "is_active": true
+  "detail": "Debe enviar al menos un campo para actualizar"
 }
 ```
+→ **400 Bad Request**
 
-**Response si el correo ya existe (409):**
+### DELETE /users/{user_id}
+
+**Request:**
+```
+DELETE http://127.0.0.1:8000/users/3
+X-API-Key: device_systems_key
+```
+
+**Response (200):**
 ```json
 {
-  "detail": "El correo 'camila@device-systems.com' ya está registrado"
+  "detail": "Usuario con id 3 eliminado correctamente"
 }
 ```
 
-**Response si los datos no son válidos (422)**, por ejemplo `name` con menos de 3 caracteres o `role` con un valor no permitido:
+**Sin la cabecera `X-API-Key` o con una clave incorrecta:**
 ```json
 {
-  "detail": [
-    {
-      "type": "string_too_short",
-      "loc": ["body", "name"],
-      "msg": "String should have at least 3 characters"
-    }
-  ]
+  "detail": "API Key inválida o no proporcionada"
 }
 ```
+→ **401 Unauthorized**
 
-## 6. Evidencias de pruebas (capturas)
+> La clave de prueba usada en este proyecto académico es `device_systems_key`. En Thunder Client debe agregarse en la pestaña **Headers** de la petición DELETE: `X-API-Key: device_systems_key`.
 
+## 8. Códigos de estado usados
 
+| Código | Significado                              | Cuándo ocurre                                             |
+|--------|--------------------------------------------|-------------------------------------------------------------|
+| 200    | OK                                          | GET, PUT, PATCH y DELETE exitosos                            |
+| 201    | Created                                     | POST exitoso                                                 |
+| 400    | Bad Request                                 | Correo duplicado (POST/PUT/PATCH) · PATCH sin campos          |
+| 401    | Unauthorized                                | DELETE sin `X-API-Key` válida                                 |
+| 404    | Not Found                                   | Operación sobre un `user_id` que no existe                    |
+| 422    | Unprocessable Entity                        | Datos que no cumplen las validaciones de Pydantic              |
+| 500    | Internal Server Error                       | Error no controlado (manejado por el exception handler global) |
 
-### 6.1 Swagger UI
+## 9. Explicación del uso de Depends()
 
-![Swagger UI](pruebas/Swaggerui.png)
+Se implementaron 5 dependencias reutilizables en `app/dependencies/user_dependencies.py`:
 
-### 6.2 Evidencia GET /users
+- **`get_user_or_404(user_id)`** — busca el usuario y lanza 404 si no existe. Se reutiliza en `GET /users/{id}`, `PUT`, `PATCH` y `DELETE`: los cuatro necesitan exactamente esta misma comprobación antes de hacer su trabajo específico.
+- **`role_filter` / `active_filter`** — encapsulan los query parameters de `GET /users`, dejando la firma del endpoint más limpia.
+- **`get_api_settings()`** — entrega configuración general de la API (nombre, versión); se usa en el endpoint raíz `/` para no repetir esos valores como texto suelto.
+- **`verify_api_key`** — simula autenticación básica leyendo la cabecera `X-API-Key`; se aplica únicamente en `DELETE /users/{id}` para demostrar que un endpoint puede protegerse de forma independiente al resto.
 
+Al declarar un parámetro como `Depends(funcion)`, FastAPI ejecuta esa función automáticamente antes del cuerpo del endpoint, y si la dependencia lanza una excepción (por ejemplo `HTTPException(404)`), el endpoint nunca llega a ejecutarse.
+
+## 10. Explicación del manejo de errores implementado
+
+- **Usuario no encontrado (404):** centralizado en la dependencia `get_user_or_404`, usada en 4 endpoints distintos.
+- **Correo electrónico duplicado (400):** validado en `user_service.email_in_use()`, que excluye al propio usuario cuando se actualiza (para no auto-rechazarse).
+- **Rol no permitido (422):** automático, gracias a que `role` está tipado como el `Enum` `UserRole` en los esquemas Pydantic.
+- **Actualización sin datos (400):** en `PATCH`, si `payload.model_dump(exclude_unset=True)` devuelve un diccionario vacío, se lanza el error antes de tocar la base de datos.
+- **Eliminación de usuario inexistente (404):** cubierta por la misma dependencia `get_user_or_404`, reutilizada también en `DELETE`.
+- **Errores no controlados (500):** capturados por un `@app.exception_handler(Exception)` global en `main.py`, para evitar que un fallo inesperado tumbe el servidor sin dar una respuesta clara.
+
+## 11. Evidencias de pruebas (capturas)
+
+### 11.1 Swagger UI
+![Swagger UI - endpoints del recurso Users](pruebas/Swaggerui.png)
+
+### 11.2 ReDoc
+![ReDoc - documentación generada automáticamente](pruebas/Redoc.png)
+
+### 11.3 Evidencia GET /users y GET /users/{id}
 ![GET /users - 200 OK](pruebas/getUsers.png)
+![GET /users/{id} - 200 OK](pruebas/getUserId.png)
+![GET /users/{id} - 404 Not Found](pruebas/getUserIdError.png)
 
-### 6.3 Evidencia GET /users/{user_id}
-
-![GET /users/{user_id} - 200 OK](pruebas/getUserId.png)
-
-### 6.4 Evidencia POST /users
-
+### 11.4 Evidencia POST /users
 ![POST /users - 201 Created](pruebas/postUsers.png)
+![POST /users - 400 correo duplicado](pruebas/postUsersEmailDuplicate.png)
+![POST /users - 422 email inválido](pruebas/postUsersEmailError.png)
+![POST /users - 422 nombre inválido](pruebas/postUsersNameError.png)
 
-### 6.5 Evidencia de validaciones y errores
-![GET /999 - 404 Not Found](pruebas/getUserIdError.png)
-![JSON NAME Incorrecto - 422 Unprocessable Content](pruebas/postUsersNameError.png)
-![JSON EMAIL Incorrecto - 422 Unprocessable Content](pruebas/postUsersEmailError.png)
-![JSON EMAIL Duplicado - 409 Conflict](pruebas/postUsersEmailDuplicate.png)
+### 11.5 Evidencia PUT /users/{id}
+![PUT /users/{id} - 200 OK](pruebas/putUsers.png)
+![PUT /users/{id} - 404 Not Found](pruebas/putUsersError.png)
+![PUT /users/{id} - 400 correo duplicado](pruebas/putUsersEmailDuplicate.png)
+![PUT /users/{id} - 422 datos incompletos](pruebas/putUsersIncomplete.png)
 
-## 7. Reflexión sobre el uso de FastAPI para construir APIs REST
+### 11.6 Evidencia PATCH /users/{id}
+![PATCH /users/{id} - 200 OK](pruebas/patchUsers.png)
+![PATCH /users/{id} - 400 body vacío](pruebas/patchUsersEmpty.png)
+![PATCH /users/{id} - 404 Not Found](pruebas/patchUsersError.png)
 
-FastAPI permite construir APIs REST de forma rápida y con un alto nivel de confiabilidad gracias a su integración nativa con Pydantic: los datos de entrada se validan automáticamente antes de que lleguen a la lógica de negocio, lo que reduce errores y código repetitivo de validación manual. El uso de *response models* separa claramente lo que el cliente puede enviar (`UserCreate`) de lo que puede recibir (`UserPublic`), permitiendo ocultar campos internos sin duplicar lógica. Además, la documentación interactiva (Swagger UI) se genera automáticamente a partir del código y los esquemas, lo que facilita enormemente las pruebas funcionales y la comunicación con otros desarrolladores o consumidores de la API. En conjunto, estas características hacen de FastAPI una herramienta muy adecuada para proyectos como `device_systems`, donde la gestión correcta de usuarios depende directamente de validaciones estrictas y respuestas consistentes.
+### 11.7 Evidencia DELETE /users/{id}
+![DELETE /users/{id} - 401 sin X-API-Key](pruebas/deleteUsersNoKey.png)
+![DELETE /users/{id} - 200 OK](pruebas/deleteUsers.png)
+![DELETE /users/{id} - 404 Not Found](pruebas/deleteUsersError.png)
 
-## 8. Autor
+## 12. Reflexión final sobre la evolución del proyecto
+
+Pasar de una API con solo GET y POST a una con CRUD completo obligó a organizar el código en capas: la lógica de negocio (`services`) se separó de las rutas para que cada endpoint quedara simple y legible, y las validaciones repetidas (como comprobar que un usuario exista) se centralizaron en dependencias reutilizables con `Depends()`. Esto redujo la duplicación de código entre `GET /users/{id}`, `PUT`, `PATCH` y `DELETE`, que ahora comparten la misma comprobación de existencia sin repetirla cuatro veces. Además, distinguir entre `UserUpdate` (todos los campos obligatorios) y `UserPatch` (todos opcionales) reforzó la diferencia real entre una actualización total y una parcial, en vez de simular esa diferencia con lógica manual. En conjunto, el proyecto ahora refleja mejor cómo se estructura una API REST profesional: capas separadas, errores explícitos y consistentes, y documentación que se genera junto con el código.
+
+## 13. Autor
 
 Proyecto desarrollado por Alejandro Murillo — Programa ADSO, Ficha 3223877, SENA CTMA.

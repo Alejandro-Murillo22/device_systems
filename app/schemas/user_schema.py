@@ -11,6 +11,7 @@ Se definen tres tipos de modelos, siguiendo buenas prácticas de FastAPI:
 """
 
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
@@ -31,7 +32,7 @@ class UserBase(BaseModel):
         min_length=3,
         max_length=80,
         description="Nombre completo del usuario. Mínimo 3 caracteres.",
-        examples=["Alejandro Ramirez"],
+        examples=["Alejandro Murillo"],
     )
     email: EmailStr = Field(
         ...,
@@ -54,12 +55,57 @@ class UserCreate(UserBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "name": "Alejandro Ramirez",
+                "name": "Alejandro Murillo",
                 "email": "alejandro@device-systems.com",
                 "role": "admin",
                 "is_active": True,
             }
         }
+    )
+
+
+class UserUpdate(BaseModel):
+    """
+    Esquema de entrada utilizado en PUT /users/{user_id}.
+
+    A diferencia de UserBase, aquí `role` e `is_active` NO tienen valor por
+    defecto: los cuatro campos son obligatorios porque un PUT reemplaza por
+    completo al usuario existente (actualización total).
+    """
+
+    name: str = Field(..., min_length=3, max_length=80)
+    email: EmailStr = Field(...)
+    role: UserRole = Field(...)
+    is_active: bool = Field(...)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "Alejandro Murillo",
+                "email": "alejandro@device-systems.com",
+                "role": "admin",
+                "is_active": True,
+            }
+        }
+    )
+
+
+class UserPatch(BaseModel):
+    """
+    Esquema de entrada utilizado en PATCH /users/{user_id}.
+
+    Todos los campos son opcionales (default=None) porque el cliente solo
+    envía los que quiere modificar. La validación de "al menos un campo"
+    se hace en la capa de servicio con `model_dump(exclude_unset=True)`.
+    """
+
+    name: Optional[str] = Field(default=None, min_length=3, max_length=80)
+    email: Optional[EmailStr] = Field(default=None)
+    role: Optional[UserRole] = Field(default=None)
+    is_active: Optional[bool] = Field(default=None)
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"role": "support"}}
     )
 
 

@@ -1,56 +1,35 @@
 """
-Rutas del recurso "users" para device_systems.
+Rutas HTTP del recurso "users" para device_systems.
 
-Implementa:
-- GET  /users                -> listar usuarios (con filtros opcionales por
-                                 query params: role, is_active)
-- GET  /users/{user_id}      -> consultar un usuario por Path Parameter
-- POST /users                -> registrar un nuevo usuario (valida email
-                                 duplicado y retorna response_model)
+Este archivo SOLO define endpoints: recibe la petición, delega en
+`user_service` la lógica real, y devuelve el resultado. La validación de
+"usuario no existe" y los filtros de query quedan resueltos por las
+dependencias de `user_dependencies` antes de que el cuerpo de cada función
+se ejecute.
 """
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, status
 
+from app.dependencies.user_dependencies import (
+    active_filter,
+    get_user_or_404,
+    role_filter,
+    verify_api_key,
+)
 from app.schemas.user_schema import (
     UserCreate,
     UserInDB,
     UserListResponse,
+    UserPatch,
     UserPublic,
     UserRole,
+    UserUpdate,
 )
+from app.services import user_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
-# ---------------------------------------------------------------------------
-# "Base de datos" en memoria (solo para efectos de la actividad académica).
-# Se inicializa con datos semilla para poder probar los GET de inmediato.
-# ---------------------------------------------------------------------------
-_users_db: dict[int, UserInDB] = {
-    1: UserInDB(
-        id=1,
-        name="Alejandro Ramirez",
-        email="alejandro@device-systems.com",
-        role=UserRole.ADMIN,
-        is_active=True,
-    ),
-    2: UserInDB(
-        id=2,
-        name="Juan Duque",
-        email="juan@device-systems.com",
-        role=UserRole.SUPPORT,
-        is_active=True,
-    ),
-    3: UserInDB(
-        id=3,
-        name="Mateo Gomez",
-        email="mateo@device-systems.com",
-        role=UserRole.USER,
-        is_active=False,
-    ),
-}
-_next_id = 4
 
 
 @router.get(
@@ -58,52 +37,27 @@ _next_id = 4
     response_model=UserListResponse,
     summary="Listar usuarios",
     description="Retorna todos los usuarios. Permite filtrar opcionalmente "
-    "por rol (`role`) y por estado activo (`is_active`) usando Query "
-    "Parameters.",
+    "por rol (`role`) y por estado activo (`is_active`).",
+    response_description="Listado de usuarios (total + items).",
 )
 def list_users(
-    response: Response,
-    role: Optional[UserRole] = Query(
-        default=None, description="Filtra usuarios por rol: admin, support o user."
-    ),
-    is_active: Optional[bool] = Query(
-        default=None, description="Filtra usuarios por estado activo/inactivo."
-    ),
+    role: Optional[UserRole] = Depends(role_filter),
+    is_active: Optional[bool] = Depends(active_filter),
 ) -> UserListResponse:
-    results = list(_users_db.values())
-
-    if role is not None:
-        results = [u for u in results if u.role == role]
-
-    if is_active is not None:
-        results = [u for u in results if u.is_active == is_active]
-
-    response.headers["X-App-Name"] = "device_systems"
-    response.headers["X-API-Version"] = "1.0"
-
-    public_users = [UserPublic(**u.model_dump()) for u in results]
-    return UserListResponse(total=len(public_users), items=public_users)
+    items = user_service.list_users(role=role, is_active=is_active)
+    return UserListResponse(total=len(items), items=items)
 
 
 @router.get(
     "/{user_id}",
     response_model=UserPublic,
     summary="Consultar usuario por ID",
-    description="Retorna un único usuario a partir de su ID (Path Parameter). "
-    "Si no existe, retorna 404.",
+    description="Retorna un único usuario a partir de su ID. Si no existe, "
+    "responde 404 (resuelto por la dependencia get_user_or_404).",
+    response_description="Datos públicos del usuario.",
     responses={404: {"description": "Usuario no encontrado"}},
 )
-def get_user(user_id: int, response: Response) -> UserPublic:
-    user = _users_db.get(user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Usuario con id {user_id} no encontrado",
-        )
-
-    response.headers["X-App-Name"] = "device_systems"
-    response.headers["X-API-Version"] = "1.0"
-
+def get_user(user: UserInDB = Depends(get_user_or_404)) -> UserPublic:
     return UserPublic(**user.model_dump())
 
 
@@ -114,30 +68,62 @@ def get_user(user_id: int, response: Response) -> UserPublic:
     summary="Registrar un nuevo usuario",
     description="Crea un nuevo usuario validando los datos con Pydantic. "
     "Evita correos electrónicos duplicados.",
-    responses={409: {"description": "El correo ya está registrado"}},
+    response_description="Usuario creado.",
+    responses={400: {"description": "El correo ya está registrado"}},
 )
-def create_user(payload: UserCreate, response: Response) -> UserPublic:
-    global _next_id
+def create_user(payload: UserCreate) -> UserPublic:
+    return user_service.create_user(payload)
 
-    email_normalized = payload.email.lower()
-    for existing in _users_db.values():
-        if existing.email.lower() == email_normalized:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"El correo '{payload.email}' ya está registrado",
-            )
 
-    new_user = UserInDB(
-        id=_next_id,
-        name=payload.name,
-        email=payload.email,
-        role=payload.role,
-        is_active=payload.is_active,
-    )
-    _users_db[_next_id] = new_user
-    _next_id += 1
+@router.put(
+    "/{user_id}",
+    response_model=UserPublic,
+    summary="Actualizar usuario (reemplazo completo)",
+    description="Reemplaza TODOS los campos del usuario existente. Los "
+    "cuatro campos (name, email, role, is_active) son obligatorios.",
+    response_description="Usuario actualizado.",
+    responses={
+        400: {"description": "El correo ya está registrado"},
+        404: {"description": "Usuario no encontrado"},
+    },
+)
+def replace_user(
+    payload: UserUpdate, user: UserInDB = Depends(get_user_or_404)
+) -> UserPublic:
+    return user_service.replace_user(user.id, payload)
 
-    response.headers["X-App-Name"] = "device_systems"
-    response.headers["X-API-Version"] = "1.0"
 
-    return UserPublic(**new_user.model_dump())
+@router.patch(
+    "/{user_id}",
+    response_model=UserPublic,
+    summary="Actualizar usuario (parcial)",
+    description="Modifica solo los campos enviados en el body. Si no se "
+    "envía ningún campo, responde 400.",
+    response_description="Usuario actualizado con los campos modificados.",
+    responses={
+        400: {"description": "Sin campos para actualizar o correo duplicado"},
+        404: {"description": "Usuario no encontrado"},
+    },
+)
+def update_user(
+    payload: UserPatch, user: UserInDB = Depends(get_user_or_404)
+) -> UserPublic:
+    return user_service.update_user_partial(user.id, payload)
+
+
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Eliminar usuario",
+    description="Elimina un usuario existente. Requiere la cabecera "
+    "`X-API-Key` (simulación de autenticación básica).",
+    response_description="Confirmación de eliminación.",
+    responses={
+        401: {"description": "API Key inválida o ausente"},
+        404: {"description": "Usuario no encontrado"},
+    },
+    dependencies=[Depends(verify_api_key)],
+)
+def delete_user(user: UserInDB = Depends(get_user_or_404)) -> dict:
+    user_service.delete_user(user.id)
+    return {"detail": f"Usuario con id {user.id} eliminado correctamente"}
