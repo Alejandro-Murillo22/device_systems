@@ -1,0 +1,64 @@
+import os
+from typing import Optional
+
+from fastapi import Depends, Header, HTTPException, Query, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.database.database import get_db
+from app.models.user_model import User
+from app.schemas.user_schema import UserRole
+
+
+def get_user_or_404(
+    user_id: int,
+    db: Session = Depends(get_db),
+) -> User:
+    user = db.scalar(select(User).where(User.id == user_id))
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado",
+        )
+    return user
+
+
+def role_filter(
+    role: Optional[UserRole] = Query(
+        default=None,
+        description="Filtra usuarios por rol: admin, support o user.",
+    )
+) -> Optional[UserRole]:
+    return role
+
+
+def active_filter(
+    is_active: Optional[bool] = Query(
+        default=None,
+        description="Filtra usuarios por estado activo/inactivo.",
+    )
+) -> Optional[bool]:
+    return is_active
+
+
+def get_api_settings() -> dict:
+    return {
+        "app_name": "device_systems",
+        "version": os.getenv("API_VERSION", "3.0.0"),
+    }
+
+
+def verify_api_key(
+    x_api_key: Optional[str] = Header(
+        default=None,
+        alias="X-API-Key",
+        description="Clave para operaciones sensibles.",
+    )
+) -> str:
+    expected_key = os.getenv("API_KEY", "device_systems_key")
+    if x_api_key != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API Key inválida o no proporcionada",
+        )
+    return x_api_key

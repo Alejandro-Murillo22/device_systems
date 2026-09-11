@@ -1,0 +1,24 @@
+from sqlalchemy import Boolean, CheckConstraint, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.database.database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    __table_args__ = (
+        CheckConstraint("length(trim(name)) >= 3", name="ck_users_name_min_length"),
+        CheckConstraint("length(name) <= 80", name="ck_users_name_max_length"),
+        CheckConstraint("length(email) <= 254", name="ck_users_email_max_length"),
+        CheckConstraint("role IN ('admin', 'support', 'user')", name="ck_users_role_allowed"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    internal_notes: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="creado automáticamente por device_systems"
+    )
