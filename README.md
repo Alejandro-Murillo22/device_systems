@@ -471,8 +471,8 @@ PUT http://127.0.0.1:8000/users/1
 Content-Type: application/json
 
 {
-  "name": "Alejandro Murillo",
-  "email": "alejandro@device-systems.com",
+  "name": "Nombre Apellid",
+  "email": "ejemplo@device-systems.com",
   "role": "admin",
   "is_active": false
 }
@@ -482,8 +482,8 @@ Content-Type: application/json
 ```json
 {
   "id": 1,
-  "name": "Alejandro Murillo",
-  "email": "alejandro@device-systems.com",
+  "name": "Nombre Apellido",
+  "email": "ejemplo@device-systems.com",
   "role": "admin",
   "is_active": false
 }
@@ -498,7 +498,7 @@ Si falta cualquiera de los 4 campos, responde **422** (Pydantic los exige todos 
 PATCH http://127.0.0.1:8000/users/2
 Content-Type: application/json
 
->>>>>>> origin/main
+
 {
   "role": "support"
 }
@@ -525,17 +525,17 @@ Si se envía `{}` se responde `400 Bad Request`.
 
 **Request:**
 ```
->>>>>>> origin/main
+
 DELETE http://127.0.0.1:8000/users/3
 X-API-Key: device_systems_key
 ```
 
-<<<<<<< HEAD
+
 Respuesta:
 
 =======
 **Response (200):**
->>>>>>> origin/main
+
 ```json
 {
   "detail": "Usuario con id 3 eliminado correctamente"
@@ -936,7 +936,5 @@ Al declarar un parámetro como `Depends(funcion)`, FastAPI ejecuta esa función 
 
 Pasar de una API con solo GET y POST a una con CRUD completo obligó a organizar el código en capas: la lógica de negocio (`services`) se separó de las rutas para que cada endpoint quedara simple y legible, y las validaciones repetidas (como comprobar que un usuario exista) se centralizaron en dependencias reutilizables con `Depends()`. Esto redujo la duplicación de código entre `GET /users/{id}`, `PUT`, `PATCH` y `DELETE`, que ahora comparten la misma comprobación de existencia sin repetirla cuatro veces. Además, distinguir entre `UserUpdate` (todos los campos obligatorios) y `UserPatch` (todos opcionales) reforzó la diferencia real entre una actualización total y una parcial, en vez de simular esa diferencia con lógica manual. En conjunto, el proyecto ahora refleja mejor cómo se estructura una API REST profesional: capas separadas, errores explícitos y consistentes, y documentación que se genera junto con el código.
 
-## 13. Autor
 
-Proyecto desarrollado por Alejandro Murillo — Programa ADSO, Ficha 3223877, SENA CTMA.
 
