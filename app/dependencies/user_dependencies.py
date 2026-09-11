@@ -14,6 +14,7 @@ def get_user_or_404(
     user_id: int,
     db: Session = Depends(get_db),
 ) -> User:
+    """Busca un usuario por ID en la BD y lanza 404 si no existe."""
     user = db.scalar(select(User).where(User.id == user_id))
     if user is None:
         raise HTTPException(
@@ -29,6 +30,7 @@ def role_filter(
         description="Filtra usuarios por rol: admin, support o user.",
     )
 ) -> Optional[UserRole]:
+    """Encapsula el query param `role` para reutilizarlo como dependencia."""
     return role
 
 
@@ -38,10 +40,12 @@ def active_filter(
         description="Filtra usuarios por estado activo/inactivo.",
     )
 ) -> Optional[bool]:
+    """Encapsula el query param `is_active` para reutilizarlo como dependencia."""
     return is_active
 
 
 def get_api_settings() -> dict:
+    """Ejemplo de dependencia que entrega configuración general de la API."""
     return {
         "app_name": "device_systems",
         "version": os.getenv("API_VERSION", "3.0.0"),
@@ -52,9 +56,10 @@ def verify_api_key(
     x_api_key: Optional[str] = Header(
         default=None,
         alias="X-API-Key",
-        description="Clave para operaciones sensibles.",
+        description="Clave simulada de autenticación para operaciones sensibles.",
     )
 ) -> str:
+    """Simula una autenticación básica leyendo una cabecera personalizada."""
     expected_key = os.getenv("API_KEY", "device_systems_key")
     if x_api_key != expected_key:
         raise HTTPException(

@@ -1,3 +1,7 @@
+"""
+Capa de servicios (lógica de negocio) para el recurso users con SQLAlchemy.
+"""
+
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -10,6 +14,7 @@ from app.schemas.user_schema import UserCreate, UserPatch, UserPublic, UserRole,
 
 
 def _to_public(user: User) -> UserPublic:
+    """Convierte la entidad SQLAlchemy al esquema de respuesta público."""
     return UserPublic.model_validate(user)
 
 
@@ -32,6 +37,10 @@ def email_in_use(
     email: str,
     exclude_id: Optional[int] = None,
 ) -> bool:
+    """
+    Revisa si un correo ya existe en la base de datos.
+    `exclude_id` permite ignorar al propio usuario en actualizaciones.
+    """
     normalized = str(email).strip().lower()
     query = select(User.id).where(func.lower(User.email) == normalized)
     if exclude_id is not None:
@@ -73,6 +82,7 @@ def create_user(db: Session, payload: UserCreate) -> UserPublic:
 
 
 def replace_user(db: Session, user: User, payload: UserUpdate) -> UserPublic:
+    """Actualización TOTAL (PUT): reemplaza todos los campos del usuario."""
     normalized_email = str(payload.email).strip().lower()
     if email_in_use(db, normalized_email, exclude_id=user.id):
         raise HTTPException(
@@ -103,7 +113,9 @@ def replace_user(db: Session, user: User, payload: UserUpdate) -> UserPublic:
 
 
 def update_user_partial(db: Session, user: User, payload: UserPatch) -> UserPublic:
+    """Actualización PARCIAL (PATCH): solo aplica los campos enviados."""
     changes = payload.model_dump(exclude_unset=True)
+
     if not changes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

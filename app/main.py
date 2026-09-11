@@ -1,5 +1,4 @@
 import logging
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,7 +24,7 @@ app = FastAPI(
         "y manejo controlado de errores."
     ),
     version="3.0.0",
-    contact={"name": "device_systems"},
+    contact={"name": "Nombre Apellido", "email": "ejemplo@device-systems.com"},
     openapi_tags=[
         {"name": "Users", "description": "Operaciones CRUD sobre usuarios."},
         {"name": "Root", "description": "Estado general de la API."},
@@ -35,6 +34,7 @@ app = FastAPI(
 
 @app.middleware("http")
 async def add_custom_headers(request: Request, call_next):
+    """Agrega cabeceras HTTP personalizadas a todas las respuestas."""
     response = await call_next(request)
     response.headers["X-App-Name"] = "device_systems"
     response.headers["X-API-Version"] = "3.0"
@@ -52,6 +52,7 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Red de seguridad ante errores no controlados explícitamente."""
     logging.exception("Error interno no controlado", exc_info=exc)
     return JSONResponse(
         status_code=500,
@@ -61,6 +62,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.get("/", tags=["Root"], summary="Estado de la API")
 def root(settings: dict = Depends(get_api_settings)):
+    """Endpoint raíz de verificación rápida."""
     return {
         "app": settings["app_name"],
         "version": settings["version"],
