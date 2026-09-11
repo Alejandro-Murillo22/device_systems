@@ -24,12 +24,12 @@ class UserBase(BaseModel):
         min_length=3,
         max_length=80,
         description="Nombre completo del usuario. Mínimo 3 caracteres.",
-        examples=["Alejandro Murillo"],
+        examples=["Usuario Ejemplo"],
     )
     email: EmailStr = Field(
         ...,
         description="Correo electrónico único del usuario.",
-        examples=["alejandro@device-systems.com"],
+        examples=["usuario@ejemplo.com"],
     )
     role: UserRole = Field(
         default=UserRole.USER,
@@ -47,8 +47,8 @@ class UserCreate(UserBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "name": "Alejandro Murillo",
-                "email": "alejandro@device-systems.com",
+                "name": "Usuario Ejemplo",
+                "email": "usuario@ejemplo.com",
                 "role": "admin",
                 "is_active": True,
             }
@@ -73,8 +73,8 @@ class UserUpdate(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "name": "Alejandro Murillo",
-                "email": "alejandro@device-systems.com",
+                "name": "Usuario Ejemplo",
+                "email": "usuario@ejemplo.com",
                 "role": "admin",
                 "is_active": True,
             }
@@ -125,8 +125,8 @@ class UserPublic(UserBase):
         json_schema_extra={
             "example": {
                 "id": 1,
-                "name": "Alejandro Murillo",
-                "email": "alejandro@device-systems.com",
+                "name": "Usuario Ejemplo",
+                "email": "usuario@ejemplo.com",
                 "role": "admin",
                 "is_active": True,
             }
