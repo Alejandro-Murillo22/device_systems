@@ -4,12 +4,16 @@ import sys
 from pathlib import Path
 
 import pytest
+os.environ.setdefault("SECRET_KEY", "test-only-signing-key-not-for-production-123456789")
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.database.database import get_db
 from app.main import app
+from app.dependencies.auth_dependencies import get_current_active_user
+from app.models import User
+from app.rate_limit import limiter
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,6 +48,9 @@ def client(database, monkeypatch):
             yield db
 
     app.dependency_overrides[get_db] = session
+    # Esta suite verifica la lógica anterior como administrador; auth real se prueba aparte.
+    app.dependency_overrides[get_current_active_user] = lambda: User(id=10000, name="Test Admin", email="admin@example.com", role="admin", is_active=True)
+    monkeypatch.setattr(limiter, "enabled", False)
     with TestClient(app, raise_server_exceptions=False) as client:
         yield client
     app.dependency_overrides.clear()

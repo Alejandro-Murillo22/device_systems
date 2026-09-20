@@ -8,13 +8,16 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models.user_model import User
 from app.schemas.user_schema import UserRole
+from app.dependencies.auth_dependencies import get_current_active_user, require_owner_or_staff
 
 
 def get_user_or_404(
     user_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
 ) -> User:
     """Busca un usuario por ID en la BD y lanza 404 si no existe."""
+    require_owner_or_staff(user_id, current_user)
     user = db.scalar(select(User).where(User.id == user_id))
     if user is None:
         raise HTTPException(
@@ -48,7 +51,7 @@ def get_api_settings() -> dict:
     """Ejemplo de dependencia que entrega configuración general de la API."""
     return {
         "app_name": "device_systems",
-        "version": os.getenv("API_VERSION", "4.0.0"),
+        "version": os.getenv("API_VERSION", "5.0.0"),
     }
 
 

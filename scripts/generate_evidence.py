@@ -7,6 +7,7 @@ import argparse
 import html
 import json
 import os
+import secrets
 from pathlib import Path
 import socket
 import sqlite3
@@ -31,54 +32,68 @@ def run(args, cwd, env):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--screenshots", action="store_true")
+    parser.add_argument("--output", type=Path, default=OUT)
     args = parser.parse_args()
-    OUT.mkdir(exist_ok=True)
+    output = args.output
+    output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="device-evidence-") as temporary:
         work = Path(temporary)
         database = work / "evidence.db"
-        env = {**os.environ, "DATABASE_URL": f"sqlite:///{database.as_posix()}", "PYTHONPATH": str(ROOT), "PYTHONIOENCODING": "utf-8"}
+        env = {**os.environ, "DATABASE_URL": f"sqlite:///{database.as_posix()}", "SECRET_KEY": secrets.token_urlsafe(48), "PYTHONPATH": str(ROOT), "PYTHONIOENCODING": "utf-8"}
         init = run(["init", "alembic"], work, env)
         (work / "alembic" / "env.py").write_text((ROOT / "alembic" / "env.py").read_text(encoding="utf-8"), encoding="utf-8")
         generated = run(["revision", "--autogenerate", "-m", "create users devices and loans tables"], work, env)
         applied = run(["upgrade", "head"], ROOT, env)
         applied += run(["history"], ROOT, env) + run(["current"], ROOT, env) + run(["check"], ROOT, env)
-        (OUT / "alembic.txt").write_text(init + generated + applied, encoding="utf-8")
+        (output / "alembic.txt").write_text(init + generated + applied, encoding="utf-8")
         with sqlite3.connect(database) as db:
             structure = "\n\n".join(row[0] for row in db.execute("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name"))
         db.close()
         structure = "\n".join(line.rstrip() for line in structure.splitlines()) + "\n"
-        (OUT / "tables.sql").write_text(structure, encoding="utf-8")
+        (output / "tables.sql").write_text(structure, encoding="utf-8")
         os.environ["DATABASE_URL"] = env["DATABASE_URL"]
+        os.environ["SECRET_KEY"] = env["SECRET_KEY"]
         sys.path.insert(0, str(ROOT))
         from fastapi.testclient import TestClient
         from app.main import app
-        from app.database.database import engine
+        from app.database.database import engine, SessionLocal
+        from app.models import User
+        from app.security import hash_password
+        password = secrets.token_urlsafe(18)
+        with SessionLocal() as db:
+            db.add(User(name="Admin Evidencias", email="admin.evidence@example.com", role="admin", is_active=True, hashed_password=hash_password(password)))
+            db.commit()
         responses = []
         with TestClient(app) as client:
+            login = client.post("/token", data={"username": "admin.evidence@example.com", "password": password})
+            assert login.status_code == 200
+            client.headers["Authorization"] = "Bearer " + login.json()["access_token"]
             def request(method, path, payload=None):
                 response = client.request(method, path, json=payload) if payload is not None else client.request(method, path)
                 responses.append({"method": method, "path": path, "request": payload, "status": response.status_code, "response": response.json()})
                 return response
-            assert request("POST", "/users", {"name": "Ana Perez", "email": "ana@example.com"}).status_code == 201
+            created = request("POST", "/users", {"name": "Ana Perez", "email": "ana@example.com"})
+            assert created.status_code == 201
+            user_id = created.json()["id"]
             assert request("POST", "/devices", {"name": "Lenovo ThinkPad", "serial_number": "LEN-001", "device_type": "laptop", "brand": "lenovo"}).status_code == 201
-            assert request("POST", "/loans", {"user_id": 1, "device_id": 1}).status_code == 201
-            assert request("POST", "/loans", {"user_id": 1, "device_id": 1}).status_code == 409
+            assert request("POST", "/loans", {"user_id": user_id, "device_id": 1}).status_code == 201
+            assert request("POST", "/loans", {"user_id": user_id, "device_id": 1}).status_code == 409
             request("GET", "/loans/details")
             request("GET", "/loans?status=active&device_type=laptop")
-            request("GET", "/users/1/loans")
+            request("GET", f"/users/{user_id}/loans")
             assert request("PATCH", "/loans/1/return").status_code == 200
             assert request("GET", "/devices/1").json()["is_available"] is True
             request("GET", "/devices/1/loans")
             assert request("PATCH", "/loans/1/return").status_code == 409
             assert request("GET", "/loans?status=invalid").status_code == 422
-            (OUT / "openapi.json").write_text(json.dumps(client.get("/openapi.json").json(), ensure_ascii=False, indent=2), encoding="utf-8")
-        (OUT / "api.json").write_text(json.dumps(responses, ensure_ascii=False, indent=2), encoding="utf-8")
+            (output / "openapi.json").write_text(json.dumps(client.get("/openapi.json").json(), ensure_ascii=False, indent=2), encoding="utf-8")
+        (output / "api.json").write_text(json.dumps(responses, ensure_ascii=False, indent=2), encoding="utf-8")
         if args.screenshots:
             from playwright.sync_api import sync_playwright
             with socket.socket() as sock:
                 sock.bind(("127.0.0.1", 0))
                 port = sock.getsockname()[1]
-            with (OUT / "server.log").open("w", encoding="utf-8") as log:
+            with (output / "server.log").open("w", encoding="utf-8") as log:
                 process = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", str(port)], cwd=ROOT, env=env, stdout=log, stderr=log)
                 try:
                     for _ in range(100):
@@ -92,18 +107,18 @@ def main():
                         page = browser.new_page(viewport={"width": 1360, "height": 1000})
                         page.goto(f"http://127.0.0.1:{port}/docs")
                         page.wait_for_selector(".opblock", timeout=60000)
-                        page.screenshot(path=str(OUT / "swagger.png"), full_page=True)
+                        page.screenshot(path=str(output / "swagger.png"), full_page=True)
                         panels = {"01-init": init, "02-autogenerate": generated, "03-upgrade-history": applied, "04-tables": structure}
                         panels.update({f"api-{i+1:02d}": json.dumps(response, ensure_ascii=False, indent=2) for i, response in enumerate(responses)})
                         for name, content in panels.items():
                             page.set_content('<html lang="es"><meta charset="utf-8"><body style="background:#13202c;color:#edf4fb;padding:28px;font:16px monospace"><h2>Evidencia de ejecución: '+html.escape(name)+'</h2><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+html.escape(content)+'</pre></body></html>')
-                            page.screenshot(path=str(OUT / f"{name}.png"), full_page=True)
+                            page.screenshot(path=str(output / f"{name}.png"), full_page=True)
                         browser.close()
                 finally:
                     process.terminate()
                     process.wait(timeout=10)
         engine.dispose()
-    print(f"Evidencias guardadas en {OUT}")
+    print(f"Evidencias guardadas en {output}")
 
 
 if __name__ == "__main__":
