@@ -23,8 +23,9 @@ from app.services import user_service
 from app.schemas.loan_schema import LoanDetailResponse
 from app.schemas.device_schema import DeviceResponse
 from app.services import loan_service
+from app.dependencies.auth_dependencies import get_current_active_user, require_admin, require_staff
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix="/users", tags=["Users"], dependencies=[Depends(get_current_active_user)], responses={401: {"description": "JWT ausente o inválido"}, 403: {"description": "Permisos insuficientes"}})
 
 
 @router.get(
@@ -33,6 +34,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
     summary="Listar usuarios",
     description="Retorna todos los usuarios y permite filtrar por rol y estado.",
     response_description="Listado de usuarios.",
+    dependencies=[Depends(require_staff)],
 )
 def list_users(
     role: Optional[UserRole] = Depends(role_filter),
@@ -63,6 +65,7 @@ def get_user(user: User = Depends(get_user_or_404)) -> UserPublic:
     description="Crea un usuario en la base de datos con validación Pydantic y restricciones SQLAlchemy.",
     response_description="Usuario creado.",
     responses={400: {"description": "Correo duplicado o restricción de base de datos"}},
+    dependencies=[Depends(require_admin)],
 )
 def create_user(
     payload: UserCreate,
@@ -75,6 +78,7 @@ def create_user(
     "/{user_id}",
     response_model=UserPublic,
     summary="Actualizar usuario",
+    dependencies=[Depends(require_admin)],
     description="Reemplaza todos los campos del usuario existente.",
     response_description="Usuario actualizado.",
     responses={
@@ -94,6 +98,7 @@ def replace_user(
     "/{user_id}",
     response_model=UserPublic,
     summary="Actualizar usuario parcialmente",
+    dependencies=[Depends(require_admin)],
     description="Modifica solamente los campos enviados en el body.",
     response_description="Usuario actualizado.",
     responses={
@@ -120,7 +125,7 @@ def update_user(
         404: {"description": "Usuario no encontrado"},
         409: {"description": "Usuario con historial de préstamos"},
     },
-    dependencies=[Depends(verify_api_key)],
+    dependencies=[Depends(require_admin), Depends(verify_api_key)],
 )
 def delete_user(
     user: User = Depends(get_user_or_404),

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.models.user_model import User
 from app.models.loan_model import Loan
+from app.security import hash_password
 from app.schemas.user_schema import UserCreate, UserPatch, UserPublic, UserRole, UserUpdate
 
 
@@ -62,6 +63,7 @@ def create_user(db: Session, payload: UserCreate) -> UserPublic:
         email=normalized_email,
         role=payload.role.value,
         is_active=payload.is_active,
+        hashed_password=hash_password(payload.password.get_secret_value()) if payload.password else None,
     )
     db.add(user)
     try:

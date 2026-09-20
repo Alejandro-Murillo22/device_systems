@@ -127,3 +127,20 @@ def test_loan_constraints(database, client, records, values):
     with database.begin() as connection:
         with pytest.raises(IntegrityError):
             connection.execute(text("INSERT INTO loans (user_id, device_id, status, return_date) VALUES (" + values + ")"))
+
+
+def test_password_migration_preserves_existing_users_and_loans(tmp_path):
+    path = tmp_path / "security-upgrade.db"
+    assert alembic(path, "upgrade", "0d0e8b654860").returncode == 0
+    with sqlite3.connect(path) as db:
+        db.execute("INSERT INTO users VALUES (1, 'Ana Perez', 'ana@example.com', 'user', 1, 'legacy')")
+        db.execute("INSERT INTO devices (id, name, serial_number, device_type) VALUES (1, 'Laptop', 'OLD-1', 'laptop')")
+        db.execute("INSERT INTO loans (user_id, device_id) VALUES (1, 1)")
+    assert alembic(path, "upgrade", "head").returncode == 0
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT hashed_password FROM users").fetchone() == (None,)
+        assert db.execute("SELECT user_id, device_id FROM loans").fetchone() == (1, 1)
+    assert alembic(path, "check").returncode == 0
+    assert alembic(path, "downgrade", "0d0e8b654860").returncode == 0
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT user_id, device_id FROM loans").fetchone() == (1, 1)

@@ -1,0 +1,22 @@
+$ python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_users, Baseline del modelo User de la actividad anterior.
+INFO  [alembic.runtime.migration] Running upgrade 0001_users -> 0d0e8b654860, create devices and loans tables
+INFO  [alembic.runtime.migration] Running upgrade 0d0e8b654860 -> 0003_user_password, Añade contraseña privada sin modificar usuarios o préstamos existentes.
+
+$ python -m alembic history
+0d0e8b654860 -> 0003_user_password (head), Añade contraseña privada sin modificar usuarios o préstamos existentes.
+0001_users -> 0d0e8b654860, create devices and loans tables
+<base> -> 0001_users, Baseline del modelo User de la actividad anterior.
+
+$ python -m alembic check
+No new upgrade operations detected.
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments

@@ -1,81 +1,61 @@
 import logging
-from dotenv import load_dotenv
 
-load_dotenv()
-
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import models
-from app.dependencies.user_dependencies import get_api_settings
-from app.routes import user_routes, device_routes, loan_routes
+from app.config import Settings, get_settings
+from app.middleware import configure_middleware
+from app.rate_limit import limiter, rate_limit_handler
+from app.routes import auth_routes, device_routes, loan_routes, user_routes
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("device_systems.errors")
 
 
-
-app = FastAPI(
-    title="device_systems API",
-    description=(
-        "API REST para la gestión de usuarios de device_systems. "
-        "Utiliza FastAPI, Pydantic v2 y SQLAlchemy para persistencia "
-        "relacional, CRUD completo, filtros, validaciones, constraints "
-        "y manejo controlado de errores. Migraciones Alembic, dispositivos y préstamos."
-    ),
-    version="4.0.0",
-    contact={"name": "Nombre Apellido", "email": "ejemplo@device-systems.com"},
-    openapi_tags=[
-        {"name": "Users", "description": "Operaciones CRUD sobre usuarios."},
-        {"name": "Devices", "description": "Equipos tecnológicos y disponibilidad."},
-        {"name": "Loans", "description": "Préstamos, devoluciones y consultas relacionadas."},
-        {"name": "Root", "description": "Estado general de la API."},
-    ],
-)
-
-
-@app.middleware("http")
-async def add_custom_headers(request: Request, call_next):
-    """Agrega cabeceras HTTP personalizadas a todas las respuestas."""
-    response = await call_next(request)
-    response.headers["X-App-Name"] = "device_systems"
-    response.headers["X-API-Version"] = "4.0"
-    return response
-
-
-@app.exception_handler(SQLAlchemyError)
-async def database_exception_handler(request: Request, exc: SQLAlchemyError):
-    logging.exception("Error de base de datos", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Error interno de base de datos"},
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+    application = FastAPI(
+        title="device_systems API", version=settings.api_version,
+        description="API de usuarios, dispositivos y préstamos con Alembic, OAuth2/JWT, Passlib bcrypt, middlewares, CORS y rate limiting.",
+        openapi_tags=[
+            {"name": "Auth", "description": "Registro, token OAuth2 y perfil autenticado."},
+            {"name": "Users", "description": "Usuarios: administración y consultas propias."},
+            {"name": "Devices", "description": "Inventario y disponibilidad de equipos."},
+            {"name": "Loans", "description": "Préstamos, devoluciones y consultas relacionadas."},
+            {"name": "Root", "description": "Estado general de la API."},
+        ],
     )
+    application.state.settings = settings
+    application.state.limiter = limiter
+    application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+
+    @application.exception_handler(SQLAlchemyError)
+    async def database_error(request: Request, exc: SQLAlchemyError):
+        # Los mensajes SQL pueden contener parámetros privados: registrar solo el tipo.
+        logger.error("Database error type=%s correlation_id=%s", type(exc).__name__, getattr(request.state, "correlation_id", "unknown"))
+        return JSONResponse(status_code=500, content={"detail": "Error interno de base de datos"})
+
+    @application.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, exc: RequestValidationError):
+        # Evitar que un 422 repita contraseñas u otros datos de entrada.
+        errors = [{"loc": item["loc"], "msg": item["msg"], "type": item["type"]} for item in exc.errors()]
+        return JSONResponse(status_code=422, content={"detail": errors})
+
+    @application.get("/", tags=["Root"], summary="Estado de la API")
+    def root():
+        return {"app": "device_systems", "version": settings.api_version, "status": "ok",
+                "database": "sqlite + sqlalchemy", "docs": "/docs", "redoc": "/redoc"}
+
+    # /users/me debe registrarse antes de /users/{user_id}.
+    application.include_router(auth_routes.router)
+    application.include_router(user_routes.router)
+    application.include_router(device_routes.router)
+    application.include_router(loan_routes.router)
+    configure_middleware(application, settings)
+    return application
 
 
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Red de seguridad ante errores no controlados explícitamente."""
-    logging.exception("Error interno no controlado", exc_info=exc)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Error interno del servidor"},
-    )
-
-
-@app.get("/", tags=["Root"], summary="Estado de la API")
-def root(settings: dict = Depends(get_api_settings)):
-    """Endpoint raíz de verificación rápida."""
-    return {
-        "app": settings["app_name"],
-        "version": settings["version"],
-        "status": "ok",
-        "database": "sqlite + sqlalchemy",
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }
-
-
-app.include_router(user_routes.router)
-
-app.include_router(device_routes.router)
-app.include_router(loan_routes.router)
+app = create_app()

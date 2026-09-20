@@ -1,6 +1,8 @@
-# device_systems — Guía 10
+# device_systems — Middleware, CORS y autenticación
 
-API REST con FastAPI, SQLAlchemy 2, SQLite y Alembic para gestionar usuarios, dispositivos y préstamos. Implementa las 13 fases de **GA1-220501096-01-AA1-EV10** y conserva el CRUD de usuarios de la actividad anterior.
+API REST con FastAPI, SQLAlchemy 2, SQLite y Alembic para gestionar usuarios, dispositivos y préstamos. La versión **5.0.0** añade middleware, CORS, Pydantic v2, Passlib/bcrypt, OAuth2/JWT y rate limiting con SlowAPI al proyecto de la Guía 10.
+
+**Documentación de la última actividad:** [seguridad, middlewares, CORS, permisos y pruebas](docs/SEGURIDAD.md). Las evidencias de la Guía 10 se conservan como registro histórico; las nuevas están en `evidencias/seguridad/`.
 
 ## 1. Instalación y ejecución
 
@@ -10,12 +12,13 @@ Desde la raíz del proyecto, con Python 3.11 o superior:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-Copy-Item .env.example .env
+python scripts/configure_local.py
 python -m alembic upgrade head
+python -m app.manage create-admin --email admin@example.com --name "Administrador"
 python -m uvicorn app.main:app --reload
 ```
 
-En Linux/macOS, activar con `source .venv/bin/activate` y copiar con `cp .env.example .env`.
+En Linux/macOS, activar con `source .venv/bin/activate`. `configure_local.py` genera una clave privada en `.env` sin mostrarla ni reemplazar una ya existente. El comando de administración solicita la contraseña sin eco; solo se necesita una vez para crear el administrador.
 
 - Swagger: http://127.0.0.1:8000/docs
 - ReDoc: http://127.0.0.1:8000/redoc
@@ -29,10 +32,12 @@ Configuración compartida por la API y Alembic, cargada desde `.env` en la raíz
 ```dotenv
 DATABASE_URL=sqlite:///./device_systems.db
 API_KEY=device_systems_key
-API_VERSION=4.0.0
+API_VERSION=5.0.0
 ```
 
-La clave incluida es de demostración. `.env`, las bases locales y `.venv` están excluidos de Git. Esta entrega está implementada y probada con SQLite; el índice único parcial de préstamos abiertos utiliza su dialecto.
+La API Key incluida es de demostración y se conserva para DELETE de usuarios, además del JWT y rol admin. `SECRET_KEY`, CORS y las demás opciones están en [.env.example](.env.example). `.env`, las bases locales y `.venv` están excluidos de Git. Esta entrega está implementada y probada con SQLite; el índice único parcial de préstamos abiertos utiliza su dialecto.
+
+En Swagger, usar `POST /token` o **Authorize**: `username` es el email y `password` es la contraseña. Los recursos de negocio requieren JWT; `/register`, `/token`, `/` y la documentación son públicos. Las cuentas anteriores necesitan una contraseña mediante `python -m app.manage set-password --email correo@example.com`.
 
 ## 2. Trabajo dividido en partes
 
@@ -67,11 +72,12 @@ Se conserva `database.py` en lugar de renombrarlo a `connection.py`: la estructu
 Historial versionado:
 
 ```text
-<base> -> 0001_users -> 0d0e8b654860 (head)
+<base> -> 0001_users -> 0d0e8b654860 -> 0003_user_password (head)
 ```
 
 - `0001_users`: tabla, índices y restricciones del modelo de usuarios anterior.
 - `0d0e8b654860`: dispositivos, préstamos, claves foráneas y restricciones.
+- `0003_user_password`: hash de contraseña nullable para conservar cuentas existentes sin asignarles una contraseña por defecto.
 
 La migración se generó con `--autogenerate`, se revisó y se separó en dos revisiones para admitir bases anteriores. `alembic init alembic` se ejecuta una sola vez al configurar un proyecto; **no repetirlo al instalar este repositorio**.
 
@@ -240,7 +246,7 @@ Cada prueba funcional utiliza una base temporal creada mediante `alembic upgrade
 - Conservación del historial, adopción de una base anterior y reversión de migraciones.
 - Rollback al fallar la creación o devolución; solicitudes concurrentes de préstamo y devolución.
 
-Resultado: **43 pruebas aprobadas**, sin fallos, en 55.56 segundos. El [resumen de entrega](evidencias/RESUMEN.md) detalla el trabajo por partes y el [reporte JUnit](evidencias/pytest.xml) registra cada prueba. El entorno de validación usa Python 3.14 en Windows. Las dependencias emiten dos advertencias de deprecación de Starlette/httpx y AnyIO; no son fallos de las pruebas.
+Resultado histórico de la Guía 10: **43 pruebas aprobadas**, sin fallos. El [resumen anterior](evidencias/RESUMEN.md) y su [reporte JUnit](evidencias/pytest.xml) se conservan. Para la última actividad, ejecutar `python -m pytest -q --junitxml=evidencias/seguridad/pytest.xml`; incluye regresión y nuevas pruebas de seguridad. El entorno de validación usa Python 3.14 en Windows.
 
 ## 8. Evidencias reproducibles
 

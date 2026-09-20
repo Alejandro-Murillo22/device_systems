@@ -5,7 +5,8 @@ Esquemas Pydantic para el recurso "users" de device_systems.
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr, field_validator, model_validator
+from app.security import validate_password_size
 
 
 class UserRole(str, Enum):
@@ -16,7 +17,14 @@ class UserRole(str, Enum):
     USER = "user"
 
 
-class UserBase(BaseModel):
+class UserValidation(BaseModel):
+    @field_validator("name", mode="before", check_fields=False)
+    @classmethod
+    def clean_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class UserBase(UserValidation):
     """Campos comunes compartidos entre los distintos esquemas de usuario."""
 
     name: str = Field(
@@ -44,6 +52,15 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Esquema de entrada utilizado en POST /users."""
 
+    password: SecretStr | None = Field(default=None, min_length=8, max_length=72, description="Opcional para altas administrativas; sin contraseña no podrá iniciar sesión")
+
+    @field_validator("password")
+    @classmethod
+    def password_bytes(cls, value):
+        if value is not None:
+            validate_password_size(value.get_secret_value())
+        return value
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -56,7 +73,7 @@ class UserCreate(UserBase):
     )
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(UserValidation):
     """
     Esquema de entrada utilizado en PUT /users/{user_id}.
 
@@ -82,7 +99,7 @@ class UserUpdate(BaseModel):
     )
 
 
-class UserPatch(BaseModel):
+class UserPatch(UserValidation):
     """
     Esquema de entrada utilizado en PATCH /users/{user_id}.
 
@@ -94,6 +111,13 @@ class UserPatch(BaseModel):
     email: Optional[EmailStr] = Field(default=None)
     role: Optional[UserRole] = Field(default=None)
     is_active: Optional[bool] = Field(default=None)
+
+    @model_validator(mode="after")
+    def reject_explicit_null(self):
+        for field in self.model_fields_set:
+            if getattr(self, field) is None:
+                raise ValueError(f"{field} no puede ser null; omitirlo si no se desea modificar")
+        return self
 
     model_config = ConfigDict(
         json_schema_extra={"example": {"role": "support"}}

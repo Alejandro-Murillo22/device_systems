@@ -1,0 +1,404 @@
+[
+  {
+    "label": "01-registro",
+    "method": "POST",
+    "path": "/register",
+    "request": {
+      "json": {
+        "name": "Ana Perez",
+        "email": "ana@example.com",
+        "password": "[REDACTADO]"
+      }
+    },
+    "status": 201,
+    "headers": {
+      "content-type": "application/json",
+      "x-ratelimit-limit": "5",
+      "x-ratelimit-remaining": "4",
+      "x-ratelimit-reset": "1789867982.888857",
+      "retry-after": "60",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "231.88",
+      "x-correlation-id": "d57b118b-2bff-4d44-a6d8-88d7b8e00191",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "name": "Ana Perez",
+      "email": "ana@example.com",
+      "role": "user",
+      "is_active": true,
+      "id": 1
+    }
+  },
+  {
+    "label": "02-duplicado",
+    "method": "POST",
+    "path": "/register",
+    "request": {
+      "json": {
+        "name": "Ana Perez",
+        "email": "ana@example.com",
+        "password": "[REDACTADO]"
+      }
+    },
+    "status": 400,
+    "headers": {
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "2.44",
+      "x-correlation-id": "17afbf96-13e8-49a8-9213-a7a744203bad",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": "El correo ya está registrado"
+    }
+  },
+  {
+    "label": "03-login",
+    "method": "POST",
+    "path": "/token",
+    "request": {
+      "data": {
+        "username": "ana@example.com",
+        "password": "[REDACTADO]"
+      }
+    },
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "cache-control": "no-store",
+      "pragma": "no-cache",
+      "x-ratelimit-limit": "5",
+      "x-ratelimit-remaining": "4",
+      "x-ratelimit-reset": "1789867983.121105",
+      "retry-after": "60",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "190.39",
+      "x-correlation-id": "b4033a08-5f9f-4ce5-9cab-d326fef3048c",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "access_token": "[REDACTADO]",
+      "token_type": "bearer",
+      "expires_in": 1800
+    }
+  },
+  {
+    "label": "04-perfil",
+    "method": "GET",
+    "path": "/users/me",
+    "request": {
+      "headers": {
+        "Authorization": "[REDACTADO]"
+      }
+    },
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-ratelimit-limit": "30",
+      "x-ratelimit-remaining": "29",
+      "x-ratelimit-reset": "1789867983.3139102",
+      "retry-after": "60",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "3.27",
+      "x-correlation-id": "fba1f48b-779c-47f8-913e-3072a4839dec",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "name": "Ana Perez",
+      "email": "ana@example.com",
+      "role": "user",
+      "is_active": true,
+      "id": 1
+    }
+  },
+  {
+    "label": "05-sin-token",
+    "method": "GET",
+    "path": "/devices",
+    "request": {},
+    "status": 401,
+    "headers": {
+      "www-authenticate": "Bearer",
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "14.71",
+      "x-correlation-id": "5db722ce-4022-44da-be0d-e53cc109bf33",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": "Not authenticated"
+    }
+  },
+  {
+    "label": "06-token-invalido",
+    "method": "GET",
+    "path": "/users/me",
+    "request": {
+      "headers": {
+        "Authorization": "[REDACTADO]"
+      }
+    },
+    "status": 401,
+    "headers": {
+      "www-authenticate": "Bearer",
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "0.95",
+      "x-correlation-id": "c4fd72b7-75c5-4aa8-b958-504748ff237a",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": "No se pudieron validar las credenciales"
+    }
+  },
+  {
+    "label": "07-token-expirado",
+    "method": "GET",
+    "path": "/users/me",
+    "request": {
+      "headers": {
+        "Authorization": "[REDACTADO]"
+      }
+    },
+    "status": 401,
+    "headers": {
+      "www-authenticate": "Bearer",
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "1.28",
+      "x-correlation-id": "92906141-17aa-4542-87ff-57c914a07f11",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": "No se pudieron validar las credenciales"
+    }
+  },
+  {
+    "label": "08-permisos",
+    "method": "GET",
+    "path": "/users",
+    "request": {
+      "headers": {
+        "Authorization": "[REDACTADO]"
+      }
+    },
+    "status": 403,
+    "headers": {
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "2.41",
+      "x-correlation-id": "109cbb6e-f2e1-43c0-9cd6-6206679e84c8",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": "Se requiere rol admin o support"
+    }
+  },
+  {
+    "label": "09-middleware",
+    "method": "GET",
+    "path": "/",
+    "request": {
+      "headers": {
+        "X-Correlation-ID": "evidencia-ultima-actividad"
+      }
+    },
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "0.89",
+      "x-correlation-id": "evidencia-ultima-actividad",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "app": "device_systems",
+      "version": "5.0.0",
+      "status": "ok",
+      "database": "sqlite + sqlalchemy",
+      "docs": "/docs",
+      "redoc": "/redoc"
+    }
+  },
+  {
+    "label": "10-cors-permitido",
+    "method": "OPTIONS",
+    "path": "/loans",
+    "request": {
+      "headers": {
+        "Origin": "http://localhost:5173",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Authorization,Content-Type"
+      }
+    },
+    "status": 200,
+    "headers": {
+      "vary": "Origin",
+      "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      "access-control-max-age": "600",
+      "access-control-allow-headers": "Accept, Accept-Language, Authorization, Content-Language, Content-Type, X-API-Key, X-Correlation-ID, X-Requested-With",
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "http://localhost:5173",
+      "content-length": "2",
+      "content-type": "text/plain; charset=utf-8",
+      "x-process-time-ms": "0.25",
+      "x-correlation-id": "78872ebe-6e0a-48fc-a742-b00fe84b34e7",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": "OK"
+  },
+  {
+    "label": "11-cors-rechazado",
+    "method": "OPTIONS",
+    "path": "/loans",
+    "request": {
+      "headers": {
+        "Origin": "https://no-autorizado.example",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Authorization,Content-Type"
+      }
+    },
+    "status": 400,
+    "headers": {
+      "vary": "Origin",
+      "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+      "access-control-max-age": "600",
+      "access-control-allow-headers": "Accept, Accept-Language, Authorization, Content-Language, Content-Type, X-API-Key, X-Correlation-ID, X-Requested-With",
+      "access-control-allow-credentials": "true",
+      "content-length": "22",
+      "content-type": "text/plain; charset=utf-8",
+      "x-process-time-ms": "0.10",
+      "x-correlation-id": "eb9896c6-eb30-482e-8454-a3a175c348c5",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": "Disallowed CORS origin"
+  },
+  {
+    "label": "12-rate-limit",
+    "method": "POST",
+    "path": "/token",
+    "request": {
+      "data": {
+        "username": "ana@example.com",
+        "password": "[REDACTADO]"
+      },
+      "headers": {
+        "Origin": "http://localhost:5173"
+      }
+    },
+    "status": 429,
+    "headers": {
+      "x-ratelimit-limit": "5",
+      "x-ratelimit-remaining": "0",
+      "x-ratelimit-reset": "1789867983.121105",
+      "retry-after": "60",
+      "content-type": "application/json",
+      "vary": "Accept-Encoding, Origin",
+      "content-encoding": "gzip",
+      "access-control-allow-credentials": "true",
+      "access-control-expose-headers": "X-Process-Time-Ms, X-Correlation-ID, X-App-Name, X-API-Version, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset",
+      "access-control-allow-origin": "http://localhost:5173",
+      "x-process-time-ms": "2.35",
+      "x-correlation-id": "b9dc9579-2c70-412e-b730-2db44ba6ce09",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": "Límite de peticiones excedido"
+    }
+  },
+  {
+    "label": "13-validacion",
+    "method": "POST",
+    "path": "/register",
+    "request": {
+      "json": {
+        "name": "Ana Perez",
+        "email": "ana@example.com",
+        "password": "[REDACTADO]"
+      }
+    },
+    "status": 422,
+    "headers": {
+      "content-type": "application/json",
+      "vary": "Accept-Encoding",
+      "content-encoding": "gzip",
+      "x-process-time-ms": "1.33",
+      "x-correlation-id": "0fd6f27b-4010-479b-ad4b-54b044d5bb68",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-app-name": "device_systems",
+      "x-api-version": "5.0.0"
+    },
+    "response": {
+      "detail": [
+        {
+          "loc": [
+            "body",
+            "password"
+          ],
+          "msg": "Value should have at least 8 items after validation, not 3",
+          "type": "too_short"
+        }
+      ]
+    }
+  }
+]

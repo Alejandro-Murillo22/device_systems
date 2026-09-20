@@ -1,0 +1,10 @@
+INFO:     Started server process [8004]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:40213 (Press CTRL+C to quit)
+INFO:device_systems.requests:method=GET path='/' status=200 duration_ms=1.53 ip=127.0.0.1 correlation_id=50acd54d-5a67-4c4d-8cbc-5ddcad132766
+INFO:     127.0.0.1:40217 - "GET / HTTP/1.1" 200 OK
+INFO:device_systems.requests:method=GET path='/docs' status=200 duration_ms=1.24 ip=127.0.0.1 correlation_id=507fd087-9194-4041-8286-f7ee5a3386e6
+INFO:     127.0.0.1:63464 - "GET /docs HTTP/1.1" 200 OK
+INFO:device_systems.requests:method=GET path='/openapi.json' status=200 duration_ms=97.69 ip=127.0.0.1 correlation_id=ee60046c-dcd0-4249-bc4e-d00afdd3cdc9
+INFO:     127.0.0.1:63464 - "GET /openapi.json HTTP/1.1" 200 OK
