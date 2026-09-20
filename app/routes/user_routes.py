@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -20,6 +20,9 @@ from app.schemas.user_schema import (
     UserUpdate,
 )
 from app.services import user_service
+from app.schemas.loan_schema import LoanDetailResponse
+from app.schemas.device_schema import DeviceResponse
+from app.services import loan_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -108,20 +111,30 @@ def update_user(
 
 @router.delete(
     "/{user_id}",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Eliminar usuario",
     description="Elimina un usuario existente. Requiere la cabecera X-API-Key.",
     response_description="Confirmación de eliminación.",
     responses={
         401: {"description": "API Key inválida o ausente"},
         404: {"description": "Usuario no encontrado"},
+        409: {"description": "Usuario con historial de préstamos"},
     },
     dependencies=[Depends(verify_api_key)],
 )
 def delete_user(
     user: User = Depends(get_user_or_404),
     db: Session = Depends(get_db),
-) -> dict:
-    user_id = user.id
+) -> Response:
     user_service.delete_user(db, user)
-    return {"detail": f"Usuario con id {user_id} eliminado correctamente"}
+    return Response(status_code=204)
+
+
+@router.get("/{user_id}/loans", response_model=list[LoanDetailResponse], summary="Préstamos del usuario", description="Consulta con joins el historial del usuario.", response_description="Préstamos y equipos relacionados")
+def user_loans(user: User = Depends(get_user_or_404), db: Session = Depends(get_db)):
+    return loan_service.list_loans(db, user_id=user.id)
+
+
+@router.get("/{user_id}/devices", response_model=list[DeviceResponse], summary="Dispositivos asignados", description="Equipos con préstamos active u overdue del usuario.", response_description="Dispositivos actualmente asignados")
+def user_devices(user: User = Depends(get_user_or_404), db: Session = Depends(get_db)):
+    return [loan.device for loan in loan_service.list_loans(db, user_id=user.id) if loan.status != "returned"]

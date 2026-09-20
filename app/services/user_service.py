@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.user_model import User
+from app.models.loan_model import Loan
 from app.schemas.user_schema import UserCreate, UserPatch, UserPublic, UserRole, UserUpdate
 
 
@@ -157,9 +158,14 @@ def update_user_partial(db: Session, user: User, payload: UserPatch) -> UserPubl
 
 
 def delete_user(db: Session, user: User) -> None:
+    if db.scalar(select(Loan.id).where(Loan.user_id == user.id)):
+        raise HTTPException(409, "El usuario tiene historial de préstamos")
     db.delete(user)
     try:
         db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(409, "El usuario tiene préstamos asociados") from exc
     except SQLAlchemyError as exc:
         db.rollback()
         raise HTTPException(

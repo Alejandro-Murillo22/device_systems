@@ -1,0 +1,65 @@
+$ python -m alembic init alembic
+Creating directory C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic ...  done
+Creating directory C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic\versions ...  done
+Generating C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic.ini ...  done
+Generating C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic\env.py ...  done
+Generating C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic\README ...  done
+Generating C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic\script.py.mako ...  done
+Please edit configuration/connection/logging settings in C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic.ini before proceeding.
+
+exit_code=0
+$ python -m alembic revision --autogenerate -m create users devices and loans tables
+Generating C:\Users\PC\AppData\Local\Temp\device-evidence-3f7y224a\alembic\versions\b280eb7223e1_create_users_devices_and_loans_tables.py ...  done
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'devices'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_devices_device_type' on '('device_type',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_devices_is_available' on '('is_available',)'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'users'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_users_email' on '('email',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_users_id' on '('id',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_users_is_active' on '('is_active',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_users_role' on '('role',)'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'loans'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_loans_device_id' on '('device_id',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_loans_status' on '('status',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'ix_loans_user_id' on '('user_id',)'
+INFO  [alembic.autogenerate.compare.constraints] Detected added index 'uq_loans_open_device' on '('device_id',)'
+
+exit_code=0
+$ python -m alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_users, Baseline del modelo User de la actividad anterior.
+INFO  [alembic.runtime.migration] Running upgrade 0001_users -> 0d0e8b654860, create devices and loans tables
+
+exit_code=0
+$ python -m alembic history
+0001_users -> 0d0e8b654860 (head), create devices and loans tables
+<base> -> 0001_users, Baseline del modelo User de la actividad anterior.
+
+exit_code=0
+$ python -m alembic current
+0d0e8b654860 (head)
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+
+exit_code=0
+$ python -m alembic check
+No new upgrade operations detected.
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+
+exit_code=0

@@ -1,11 +1,12 @@
 from sqlalchemy import Boolean, CheckConstraint, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
 
 
 class User(Base):
     __tablename__ = "users"
+    loans = relationship("Loan", back_populates="user", passive_deletes="all")
 
     __table_args__ = (
         CheckConstraint("length(trim(name)) >= 3", name="ck_users_name_min_length"),

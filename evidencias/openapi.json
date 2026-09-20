@@ -1,0 +1,2087 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "device_systems API",
+    "description": "API REST para la gestión de usuarios de device_systems. Utiliza FastAPI, Pydantic v2 y SQLAlchemy para persistencia relacional, CRUD completo, filtros, validaciones, constraints y manejo controlado de errores. Migraciones Alembic, dispositivos y préstamos.",
+    "contact": {
+      "name": "Nombre Apellido",
+      "email": "ejemplo@device-systems.com"
+    },
+    "version": "4.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "Root"
+        ],
+        "summary": "Estado de la API",
+        "description": "Endpoint raíz de verificación rápida.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Listar usuarios",
+        "description": "Retorna todos los usuarios y permite filtrar por rol y estado.",
+        "operationId": "list_users_users_get",
+        "parameters": [
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UserRole"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtra usuarios por rol: admin, support o user.",
+              "title": "Role"
+            },
+            "description": "Filtra usuarios por rol: admin, support o user."
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtra usuarios por estado activo/inactivo.",
+              "title": "Is Active"
+            },
+            "description": "Filtra usuarios por estado activo/inactivo."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de usuarios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Registrar un nuevo usuario",
+        "description": "Crea un usuario en la base de datos con validación Pydantic y restricciones SQLAlchemy.",
+        "operationId": "create_user_users_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correo duplicado o restricción de base de datos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Consultar usuario por ID",
+        "description": "Retorna un usuario a partir de su ID.",
+        "operationId": "get_user_users__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos públicos del usuario.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Actualizar usuario",
+        "description": "Reemplaza todos los campos del usuario existente.",
+        "operationId": "replace_user_users__user_id__put",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Correo duplicado o restricción de base de datos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Actualizar usuario parcialmente",
+        "description": "Modifica solamente los campos enviados en el body.",
+        "operationId": "update_user_users__user_id__patch",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sin campos, correo duplicado o restricción de base de datos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Eliminar usuario",
+        "description": "Elimina un usuario existente. Requiere la cabecera X-API-Key.",
+        "operationId": "delete_user_users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Clave simulada de autenticación para operaciones sensibles.",
+              "title": "X-Api-Key"
+            },
+            "description": "Clave simulada de autenticación para operaciones sensibles."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Confirmación de eliminación."
+          },
+          "401": {
+            "description": "API Key inválida o ausente"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          },
+          "409": {
+            "description": "Usuario con historial de préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}/loans": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Préstamos del usuario",
+        "description": "Consulta con joins el historial del usuario.",
+        "operationId": "user_loans_users__user_id__loans_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Préstamos y equipos relacionados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoanDetailResponse"
+                  },
+                  "title": "Response User Loans Users  User Id  Loans Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}/devices": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Dispositivos asignados",
+        "description": "Equipos con préstamos active u overdue del usuario.",
+        "operationId": "user_devices_users__user_id__devices_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dispositivos actualmente asignados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceResponse"
+                  },
+                  "title": "Response User Devices Users  User Id  Devices Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Listar dispositivos",
+        "description": "Combina filtros por tipo, disponibilidad, marca y búsqueda por nombre o serie.",
+        "operationId": "list_devices_devices_get",
+        "parameters": [
+          {
+            "name": "device_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Device Type"
+            }
+          },
+          {
+            "name": "is_available",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Available"
+            }
+          },
+          {
+            "name": "brand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dispositivos que coinciden con los filtros",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceResponse"
+                  },
+                  "title": "Response List Devices Devices Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Crear dispositivo",
+        "description": "Registra un equipo con número de serie único.",
+        "operationId": "create_device_devices_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dispositivo registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices/{device_id}": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Consultar dispositivo",
+        "description": "Obtiene un equipo por su identificador.",
+        "operationId": "get_device_devices__device_id__get",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos del dispositivo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Reemplazar dispositivo",
+        "description": "Reemplaza los campos de un equipo sin préstamos abiertos.",
+        "operationId": "replace_device_devices__device_id__put",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dispositivo actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Modificar dispositivo",
+        "description": "Actualiza solo los campos enviados de un equipo sin préstamos abiertos.",
+        "operationId": "patch_device_devices__device_id__patch",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevicePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dispositivo actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Eliminar dispositivo",
+        "description": "Elimina un equipo únicamente si no tiene historial de préstamos.",
+        "operationId": "delete_device_devices__device_id__delete",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Eliminación sin contenido"
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices/{device_id}/loans": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Historial del dispositivo",
+        "description": "Consulta con joins todos los préstamos históricos de un equipo.",
+        "operationId": "device_loans_devices__device_id__loans_get",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Préstamos con usuario y dispositivo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoanDetailResponse"
+                  },
+                  "title": "Response Device Loans Devices  Device Id  Loans Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Dispositivo inexistente"
+          },
+          "400": {
+            "description": "Serie duplicada o actualización vacía"
+          },
+          "409": {
+            "description": "Dispositivo con préstamos"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loans/details": {
+      "get": {
+        "tags": [
+          "Loans"
+        ],
+        "summary": "Consultar préstamos con joins",
+        "description": "Relaciona loans, users y devices mediante JOIN; admite los mismos filtros que el listado.",
+        "operationId": "list_loans_loans_details_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "device_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/LoanStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "user_email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "email"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Email"
+            }
+          },
+          {
+            "name": "device_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Device Type"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle relacionado de préstamos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoanDetailResponse"
+                  },
+                  "title": "Response List Loans Loans Details Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario, dispositivo o préstamo inexistente"
+          },
+          "409": {
+            "description": "Equipo no disponible o préstamo ya devuelto"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loans": {
+      "get": {
+        "tags": [
+          "Loans"
+        ],
+        "summary": "Listar y filtrar préstamos",
+        "description": "Combina usuario, dispositivo, estado, correo, tipo, búsqueda y rango de fechas UTC inclusivo.",
+        "operationId": "list_loans_loans_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "device_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/LoanStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "user_email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "email"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Email"
+            }
+          },
+          {
+            "name": "device_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Device Type"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Préstamos con sus usuarios y dispositivos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoanDetailResponse"
+                  },
+                  "title": "Response List Loans Loans Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario, dispositivo o préstamo inexistente"
+          },
+          "409": {
+            "description": "Equipo no disponible o préstamo ya devuelto"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Loans"
+        ],
+        "summary": "Prestar dispositivo",
+        "description": "Valida las referencias y reserva el equipo en la misma transacción del préstamo.",
+        "operationId": "create_loan_loans_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoanCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Préstamo creado en estado active",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario, dispositivo o préstamo inexistente"
+          },
+          "409": {
+            "description": "Equipo no disponible o préstamo ya devuelto"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loans/{loan_id}": {
+      "get": {
+        "tags": [
+          "Loans"
+        ],
+        "summary": "Consultar préstamo",
+        "description": "Muestra el préstamo y los datos del usuario y del equipo.",
+        "operationId": "get_loan_loans__loan_id__get",
+        "parameters": [
+          {
+            "name": "loan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Loan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle del préstamo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario, dispositivo o préstamo inexistente"
+          },
+          "409": {
+            "description": "Equipo no disponible o préstamo ya devuelto"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loans/{loan_id}/return": {
+      "patch": {
+        "tags": [
+          "Loans"
+        ],
+        "summary": "Devolver dispositivo",
+        "description": "Marca returned, registra la fecha UTC y libera el equipo en una sola transacción.",
+        "operationId": "return_loan_loans__loan_id__return_patch",
+        "parameters": [
+          {
+            "name": "loan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Loan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Préstamo devuelto",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuario, dispositivo o préstamo inexistente"
+          },
+          "409": {
+            "description": "Equipo no disponible o préstamo ya devuelto"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DeviceCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "serial_number": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Serial Number"
+          },
+          "device_type": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Device Type"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "serial_number",
+          "device_type"
+        ],
+        "title": "DeviceCreate",
+        "example": {
+          "brand": "lenovo",
+          "device_type": "laptop",
+          "name": "Lenovo ThinkPad",
+          "serial_number": "LEN-001"
+        }
+      },
+      "DevicePatch": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "serial_number": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial Number"
+          },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Type"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "is_available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Available"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DevicePatch"
+      },
+      "DeviceResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "serial_number": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Serial Number"
+          },
+          "device_type": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Device Type"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available",
+            "default": true
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "serial_number",
+          "device_type",
+          "id",
+          "created_at"
+        ],
+        "title": "DeviceResponse",
+        "example": {
+          "brand": "lenovo",
+          "device_type": "laptop",
+          "name": "Lenovo ThinkPad",
+          "serial_number": "LEN-001"
+        }
+      },
+      "DeviceUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "serial_number": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Serial Number"
+          },
+          "device_type": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Device Type"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "is_available": {
+            "type": "boolean",
+            "title": "Is Available"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "serial_number",
+          "device_type",
+          "is_available"
+        ],
+        "title": "DeviceUpdate",
+        "example": {
+          "brand": "lenovo",
+          "device_type": "laptop",
+          "name": "Lenovo ThinkPad",
+          "serial_number": "LEN-001"
+        }
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoanCreate": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "User Id"
+          },
+          "device_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Device Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id",
+          "device_id"
+        ],
+        "title": "LoanCreate",
+        "example": {
+          "device_id": 1,
+          "user_id": 1
+        }
+      },
+      "LoanDetailResponse": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/LoanStatus"
+          },
+          "return_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Date"
+          },
+          "user_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "User Id"
+          },
+          "device_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Device Id"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "loan_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Loan Date"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DeviceResponse"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "return_date",
+          "user_id",
+          "device_id",
+          "id",
+          "loan_date",
+          "user",
+          "device"
+        ],
+        "title": "LoanDetailResponse",
+        "example": {
+          "device_id": 1,
+          "user_id": 1
+        }
+      },
+      "LoanResponse": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/LoanStatus"
+          },
+          "return_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Date"
+          },
+          "user_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "User Id"
+          },
+          "device_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Device Id"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "loan_date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Loan Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "return_date",
+          "user_id",
+          "device_id",
+          "id",
+          "loan_date"
+        ],
+        "title": "LoanResponse",
+        "example": {
+          "device_id": 1,
+          "user_id": 1
+        }
+      },
+      "LoanStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "returned",
+          "overdue"
+        ],
+        "title": "LoanStatus"
+      },
+      "UserCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Name",
+            "description": "Nombre completo del usuario. Mínimo 3 caracteres.",
+            "examples": [
+              "Usuario Ejemplo"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Correo electrónico único del usuario.",
+            "examples": [
+              "usuario@ejemplo.com"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Rol del usuario dentro del sistema: admin, support o user.",
+            "default": "user"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Indica si el usuario se encuentra activo en el sistema.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email"
+        ],
+        "title": "UserCreate",
+        "description": "Esquema de entrada utilizado en POST /users.",
+        "example": {
+          "email": "usuario@ejemplo.com",
+          "is_active": true,
+          "name": "Usuario Ejemplo",
+          "role": "admin"
+        }
+      },
+      "UserListResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Cantidad total de usuarios retornados."
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Lista de usuarios."
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "UserListResponse",
+        "description": "Envoltorio estandarizado para la respuesta de listado de usuarios."
+      },
+      "UserPatch": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "UserPatch",
+        "description": "Esquema de entrada utilizado en PATCH /users/{user_id}.\n\nTodos los campos son opcionales (default=None) porque el cliente solo\nenvía los que quiere modificar.",
+        "example": {
+          "role": "support"
+        }
+      },
+      "UserPublic": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Name",
+            "description": "Nombre completo del usuario. Mínimo 3 caracteres.",
+            "examples": [
+              "Usuario Ejemplo"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Correo electrónico único del usuario.",
+            "examples": [
+              "usuario@ejemplo.com"
+            ]
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Rol del usuario dentro del sistema: admin, support o user.",
+            "default": "user"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Indica si el usuario se encuentra activo en el sistema.",
+            "default": true
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "id"
+        ],
+        "title": "UserPublic",
+        "description": "Response model utilizado por los endpoints de la API pública.",
+        "example": {
+          "email": "usuario@ejemplo.com",
+          "id": 1,
+          "is_active": true,
+          "name": "Usuario Ejemplo",
+          "role": "admin"
+        }
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "support",
+          "user"
+        ],
+        "title": "UserRole",
+        "description": "Roles permitidos para un usuario del sistema device_systems."
+      },
+      "UserUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3,
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "role",
+          "is_active"
+        ],
+        "title": "UserUpdate",
+        "description": "Esquema de entrada utilizado en PUT /users/{user_id}.\n\nA diferencia de UserBase, aquí `role` e `is_active` NO tienen valor por\ndefecto: los cuatro campos son obligatorios porque un PUT reemplaza por\ncompleto al usuario existente (actualización total).",
+        "example": {
+          "email": "usuario@ejemplo.com",
+          "is_active": true,
+          "name": "Usuario Ejemplo",
+          "role": "admin"
+        }
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Users",
+      "description": "Operaciones CRUD sobre usuarios."
+    },
+    {
+      "name": "Devices",
+      "description": "Equipos tecnológicos y disponibilidad."
+    },
+    {
+      "name": "Loans",
+      "description": "Préstamos, devoluciones y consultas relacionadas."
+    },
+    {
+      "name": "Root",
+      "description": "Estado general de la API."
+    }
+  ]
+}
