@@ -48,7 +48,7 @@ def get_api_settings() -> dict:
     """Ejemplo de dependencia que entrega configuración general de la API."""
     return {
         "app_name": "device_systems",
-        "version": os.getenv("API_VERSION", "3.0.0"),
+        "version": os.getenv("API_VERSION", "4.0.0"),
     }
 
 

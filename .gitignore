@@ -3,14 +3,8 @@ __pycache__/
 .venv/
 venv/
 .env
-device_systems.db
 *.db
+*.db-*
 .pytest_cache/
 .vscode/
 .idea/
-=======
-venv/
-__pycache__/
-*.pyc
-.env
-
